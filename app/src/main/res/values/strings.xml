@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Simple App Store</string>
+    <string name="app_name">F-Droid Store</string>
+    <string name="search_hint">Search apps, developers...</string>
+    <string name="loading">Loading apps...</string>
+    <string name="error_loading">Failed to load apps</string>
+    <string name="retry">Retry</string>
+    <string name="no_apps_found">No apps found</string>
+    <string name="try_different_search">Try a different search term</string>
+    <string name="open_source_apps">Free and open-source Android apps</string>
+    <string name="install">Install</string>
+    <string name="version_label">Version</string>
+    <string name="size_label">Size</string>
+    <string name="license_label">License</string>
 </resources>

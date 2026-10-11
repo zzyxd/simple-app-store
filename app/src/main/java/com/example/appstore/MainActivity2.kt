@@ -1,17 +1,3 @@
 package com.example.appstore
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
-
-class LegacyMainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            MaterialTheme {
-                AppStoreScreen()
-            }
-        }
-    }
-}
+const val R_APP_NAME = "app_name"

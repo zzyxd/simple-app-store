@@ -2,6 +2,11 @@ package com.example.appstore
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,24 +20,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SearchBar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -41,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -49,6 +57,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppStoreScreen(viewModel: AppStoreViewModel = viewModel()) {
     LaunchedEffect(Unit) {
@@ -57,68 +66,36 @@ fun AppStoreScreen(viewModel: AppStoreViewModel = viewModel()) {
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFFF8FAFC)
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 12.dp)
         ) {
-            // Header
-            HeaderSection()
+            // Header with Material 3 Expressive styling
+            StoreHeader()
 
             // Search bar
-            SearchBar(viewModel)
+            SearchBarSection(viewModel)
 
-            // Content
-            when {
-                viewModel.isLoading.value -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
+            // Content area
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f)
+            ) {
+                when {
+                    viewModel.isLoading.value -> {
+                        LoadingState()
                     }
-                }
 
-                viewModel.errorMessage.value != null -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Oops!",
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1F2937)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = viewModel.errorMessage.value ?: "Unknown error",
-                                color = Color(0xFF6B7280),
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(
-                                onClick = { viewModel.loadApps() },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF3B82F6)
-                                )
-                            ) {
-                                Text("Retry")
-                            }
-                        }
+                    viewModel.errorMessage.value != null -> {
+                        ErrorState(viewModel)
                     }
-                }
 
-                else -> {
-                    AppList(viewModel)
+                    else -> {
+                        AppListSection(viewModel)
+                    }
                 }
             }
         }
@@ -126,78 +103,157 @@ fun AppStoreScreen(viewModel: AppStoreViewModel = viewModel()) {
 }
 
 @Composable
-private fun HeaderSection() {
-    Column(
+private fun StoreHeader() {
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
+            .background(
+                brush = androidx.compose.foundation.background(
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                ).brush
+            )
+            .padding(top = 16.dp, bottom = 8.dp, start = 20.dp, end = 20.dp)
     ) {
-        Text(
-            text = "F-Droid Store",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF0F172A)
-        )
-        Text(
-            text = "Open-source Android apps",
-            fontSize = 14.sp,
-            color = Color(0xFF64748B),
-            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-        )
+        Column {
+            Text(
+                text = stringResource(R.string.app_name),
+                fontSize = 32.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            Text(
+                text = stringResource(R.string.open_source_apps),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+        }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SearchBar(viewModel: AppStoreViewModel) {
+private fun SearchBarSection(viewModel: AppStoreViewModel) {
     val query = viewModel.searchQuery.value
+    val isActive = query.isNotEmpty()
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        TextField(
-            value = query,
-            onValueChange = { viewModel.searchQuery.value = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            placeholder = { Text("Search apps...", color = Color(0xFF94A3B8)) },
+        SearchBar(
+            query = query,
+            onQueryChange = { viewModel.searchQuery.value = it },
+            onSearch = {},
+            active = isActive,
+            onActiveChange = {},
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text(stringResource(R.string.search_hint)) },
             leadingIcon = {
                 Icon(
                     Icons.Default.Search,
                     contentDescription = "Search",
-                    tint = Color(0xFF64748B)
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             trailingIcon = {
-                if (query.isNotEmpty()) {
+                AnimatedVisibility(
+                    visible = isActive,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
                     IconButton(
-                        onClick = { viewModel.searchQuery.value = "" },
-                        modifier = Modifier.size(24.dp)
+                        onClick = { viewModel.searchQuery.value = "" }
                     ) {
                         Icon(
                             Icons.Default.Close,
                             contentDescription = "Clear",
-                            tint = Color(0xFF64748B)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-            },
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            colors = TextFieldDefaults.colors(
-                unfocusedContainerColor = Color.White,
-                focusedContainerColor = Color.White,
-                unfocusedIndicatorColor = Color.Transparent,
-                focusedIndicatorColor = Color(0xFF3B82F6)
-            )
-        )
+            }
+        ) {}
     }
 }
 
 @Composable
-private fun AppList(viewModel: AppStoreViewModel) {
+private fun LoadingState() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(48.dp),
+                color = MaterialTheme.colorScheme.primary,
+                strokeWidth = 4.dp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.loading),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun ErrorState(viewModel: AppStoreViewModel) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Icon(
+                imageVector = Icons.Default.Download,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(48.dp)
+                    .padding(bottom = 16.dp),
+                tint = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = stringResource(R.string.error_loading),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Text(
+                text = viewModel.errorMessage.value ?: "Unknown error",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
+            Button(
+                onClick = { viewModel.loadApps() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text(stringResource(R.string.retry))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppListSection(viewModel: AppStoreViewModel) {
     val filteredApps = viewModel.getFilteredApps()
 
     if (filteredApps.isEmpty()) {
@@ -209,18 +265,19 @@ private fun AppList(viewModel: AppStoreViewModel) {
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize()
             ) {
                 Text(
-                    text = "No apps found",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF1F2937)
+                    text = stringResource(R.string.no_apps_found),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Try a different search term",
-                    fontSize = 14.sp,
-                    color = Color(0xFF6B7280),
+                    text = stringResource(R.string.try_different_search),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
@@ -228,21 +285,21 @@ private fun AppList(viewModel: AppStoreViewModel) {
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(
                 filteredApps,
                 key = { it.packageId }
             ) { app ->
-                AppCard(app)
+                AppCardExpressive(app)
             }
         }
     }
 }
 
 @Composable
-private fun AppCard(app: AppUiModel) {
+private fun AppCardExpressive(app: AppUiModel) {
     val context = LocalContext.current
 
     Card(
@@ -254,28 +311,41 @@ private fun AppCard(app: AppUiModel) {
                     Uri.parse("https://f-droid.org/packages/${app.packageId}")
                 )
                 context.startActivity(intent)
-            },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+            }
+            .animateEnterExit(
+                enter = slideInVertically(initialOffsetY = { 100 }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { -100 }) + fadeOut()
+            ),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp,
+            pressedElevation = 8.dp,
+            hoveredElevation = 6.dp
+        ),
         border = CardDefaults.outlinedCardBorder()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Icon
+            // App Icon
             Box(
                 modifier = Modifier
-                    .size(72.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF1F5F9)),
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                if (app.iconUrl != null) {
+                if (!app.iconUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
                             .data(app.iconUrl)
@@ -284,28 +354,28 @@ private fun AppCard(app: AppUiModel) {
                         contentDescription = app.name,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(72.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .size(80.dp)
+                            .clip(RoundedCornerShape(18.dp))
                     )
                 } else {
                     Text(
                         "📦",
-                        fontSize = 32.sp
+                        fontSize = 40.sp
                     )
                 }
             }
 
-            // App info
+            // App Info
             Column(
                 modifier = Modifier
                     .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
                     text = app.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF0F172A),
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -313,12 +383,13 @@ private fun AppCard(app: AppUiModel) {
                 Text(
                     text = app.summary,
                     fontSize = 13.sp,
-                    color = Color(0xFF64748B),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 16.sp
                 )
 
+                // Metadata Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -326,40 +397,77 @@ private fun AppCard(app: AppUiModel) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Category badge
+                    // Category badge with Material 3 style
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0xFFEFF6FF))
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                MaterialTheme.colorScheme.primaryContainer
+                            )
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = app.category,
                             fontSize = 11.sp,
-                            color = Color(0xFF1E40AF),
-                            fontWeight = FontWeight.Medium
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
 
-                    // Version
-                    if (app.latestVersion != null) {
-                        Text(
-                            text = "v${app.latestVersion}",
-                            fontSize = 11.sp,
-                            color = Color(0xFF94A3B8)
-                        )
+                    // Version badge
+                    if (!app.latestVersion.isNullOrBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                )
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "v${app.latestVersion}",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
 
-                    // Size
-                    if (app.appSize != null) {
-                        Text(
-                            text = app.appSize,
-                            fontSize = 11.sp,
-                            color = Color(0xFF94A3B8)
-                        )
+                    // Size badge
+                    if (!app.appSize.isNullOrBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    MaterialTheme.colorScheme.tertiaryContainer
+                                )
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = app.appSize,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun androidx.compose.foundation.background(
+    color: Color
+): androidx.compose.material3.Shapes {
+    return androidx.compose.material3.Shapes()
+}
+
+// Extension for AnimateEnterExit (Compose Animation)
+private fun <T> androidx.compose.animation.AnimatedVisibility.Companion.animateEnterExit(
+    enter: androidx.compose.animation.EnterTransition,
+    exit: androidx.compose.animation.ExitTransition
+): androidx.compose.animation.EnterTransition {
+    return enter
 }
