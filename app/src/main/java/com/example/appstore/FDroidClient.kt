@@ -17,26 +17,27 @@ class FDroidClient {
         val request = Request.Builder()
             .url(url)
             .build()
-        
-        val response = client.newCall(request).execute()
-        
-        if (!response.isSuccessful) {
-            Result.failure(Exception("HTTP ${response.code}"))
-        } else {
-            val body = response.body?.string() ?: ""
-            val repo = gson.fromJson(body, FDroidRepo::class.java)
-            Result.success(repo)
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                Result.failure(Exception("HTTP ${response.code}"))
+            } else {
+                val body = response.body?.string() ?: ""
+                val repo = gson.fromJson(body, FDroidRepo::class.java)
+                Result.success(repo)
+            }
         }
     } catch (e: Exception) {
         Result.failure(e)
     }
 
     fun getIconUrl(baseUrl: String, iconPath: String?): String? {
-        return if (iconPath != null) {
+        if (iconPath.isNullOrBlank()) return null
+        return if (iconPath.startsWith("http://") || iconPath.startsWith("https://")) {
+            iconPath
+        } else {
             val base = baseUrl.trimEnd('/')
             "$base/icons/$iconPath"
-        } else {
-            null
         }
     }
 }

@@ -36,35 +36,39 @@ class AppStoreViewModel : ViewModel() {
             result.onSuccess { repo ->
                 val appList = repo.packages
                     .map { (packageId, pkg) ->
-                        val iconUrl = fdroidClient.getIconUrl(
-                            "https://f-droid.org/repo",
-                            pkg.metadata.icon
-                        )
-                        val category = pkg.categories.firstOrNull() ?: "Other"
-                        val latestVersion = pkg.versions[pkg.suggestedVersionCode.toString()]
-                            ?.versionName
-                        val appSize = pkg.versions[pkg.suggestedVersionCode.toString()]
-                            ?.apkSize?.let { formatBytes(it) }
+                        val metadata = pkg.metadata
+                        val version = pkg.versions[pkg.suggestedVersionCode.toString()]
+                            ?: pkg.versions.values.firstOrNull()
+
+                        val iconUrl = when {
+                            metadata.icon.isNullOrBlank() -> null
+                            metadata.icon.startsWith("http://") || metadata.icon.startsWith("https://") -> metadata.icon
+                            else -> fdroidClient.getIconUrl("https://f-droid.org/repo", metadata.icon)
+                        }
+
+                        val category = pkg.categories.firstOrNull()?.ifBlank { "Other" } ?: "Other"
+                        val latestVersion = version?.versionName ?: "unknown"
+                        val appSize = version?.apkSize?.let { formatBytes(it) }
 
                         AppUiModel(
                             packageId = packageId,
-                            name = pkg.metadata.name,
-                            summary = pkg.metadata.summary,
+                            name = metadata.name.ifBlank { packageId },
+                            summary = metadata.summary.ifBlank { "Open-source Android app" },
                             category = category,
                             iconUrl = iconUrl,
-                            license = pkg.metadata.license,
+                            license = metadata.license.ifBlank { "Unknown" },
                             latestVersion = latestVersion,
                             appSize = appSize
                         )
                     }
-                    .sortedBy { it.name }
+                    .sortedBy { it.name.lowercase() }
 
                 apps.value = appList
                 isLoading.value = false
             }
 
             result.onFailure { error ->
-                errorMessage.value = "Failed to load apps: ${error.message}"
+                errorMessage.value = "Failed to load apps: ${error.message ?: "unknown error"}"
                 isLoading.value = false
             }
         }
