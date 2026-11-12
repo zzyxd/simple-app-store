@@ -1,6 +1,7 @@
 # Simple App Store
 
 A tiny Android app built with Kotlin + Jetpack Compose.
+Note: app is fully made by AI as an experiment, bunch of stuff broken or mising.
 
 ## Features
 - Search bar
